@@ -56,6 +56,10 @@ PRESETS = {'Student': ['python', 'sql', 'html', 'css', 'javascript', 'git', 'com
 S = st.session_state
 if 'skills' not in S:
     S.skills = [s for s in PRESETS['Student'] if s in IX]
+S.setdefault('target_role', 'ML Engineer')
+S.setdefault('weight_tests', True)
+S.setdefault('new_skills', 3)
+S.setdefault('learning_effort', .2)
 
 # Keep inputs when their inactive tabs are not rendered.
 for key in ('skills', 'target_role', 'weight_tests', 'resume', 'jd', 'explore', 'test_skill',
@@ -94,9 +98,9 @@ if t1.open:
         profile, rankings = st.columns([4, 6], gap='medium')
         with profile.container(key='profile'):
             st.markdown('## Your profile')
-            st.selectbox('Target role', ROLES, index=ROLES.index('ML Engineer'), key='target_role')
+            st.selectbox('Target role', ROLES, key='target_role')
             st.multiselect('Current skills', V, key='skills', placeholder='Search the skill library')
-            st.toggle('Use skill test scores', value=True, key='weight_tests',
+            st.toggle('Use skill test scores', key='weight_tests',
                       help='A tested skill contributes its estimated mastery. A skill at 40% mastery counts as 0.4. Untested skills count fully.')
             st.caption('Load a sample profile')
             for col, name in zip(st.columns(3), PRESETS):

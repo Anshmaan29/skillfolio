@@ -7,6 +7,14 @@ from ui import heading, score_readout, L, PAPER, AMBER, CORAL, TEAL, MUTED, LINE
 note = lambda s: st.html(f'<div class="note">{s}</div>')
 card = lambda s: st.html(f'<div class="card">{s}</div>')
 esc = html.escape
+SKILL_NAMES = {'aws': 'AWS', 'c++': 'C++', 'ci/cd': 'CI/CD', 'css': 'CSS', 'html': 'HTML',
+               'javascript': 'JavaScript', 'mlops': 'MLOps', 'mongodb': 'MongoDB', 'nlp': 'NLP',
+               'node.js': 'Node.js', 'oop': 'OOP', 'pytorch': 'PyTorch', 'rest api': 'REST API',
+               'sql': 'SQL', 'typescript': 'TypeScript'}
+
+
+def skill_name(skill):
+    return SKILL_NAMES.get(skill, skill.capitalize())
 
 # ================= SKILL TEST =================
 def _start(skill):
@@ -39,7 +47,8 @@ def skill_test_tab(have_names, add_skills, history=None):
         with setup.container(key='test-setup'):
             st.markdown('## Choose a skill')
             default = next((s for s in have_names if s in assess.SKILLS), 'docker')
-            skill = st.selectbox('Skill to test', assess.SKILLS, index=assess.SKILLS.index(default), key='test_skill')
+            S.setdefault('test_skill', default)
+            skill = st.selectbox('Skill to test', assess.SKILLS, format_func=skill_name, key='test_skill')
             st.button('Start test', type='primary', on_click=_start, args=(skill,))
             if history is not None:
                 st.caption('Test history is kept for this session.')
@@ -54,8 +63,8 @@ def skill_test_tab(have_names, add_skills, history=None):
         if hist:
             st.markdown('### Your tested skills')
             rows = sorted(((s, assess.mastery_today(s, history=hist)) for s in hist), key=lambda x: -x[1]['today'])
-            fig = go.Figure([go.Bar(y=[s for s, _ in rows], x=[m['tested'] for _, m in rows], orientation='h', marker_color=LINE, name='when tested'),
-                             go.Bar(y=[s for s, _ in rows], x=[m['today'] for _, m in rows], orientation='h', marker_color=TEAL, name='estimated today')])
+            fig = go.Figure([go.Bar(y=[skill_name(s) for s, _ in rows], x=[m['tested'] for _, m in rows], orientation='h', marker_color=LINE, name='When tested'),
+                             go.Bar(y=[skill_name(s) for s, _ in rows], x=[m['today'] for _, m in rows], orientation='h', marker_color=TEAL, name='Estimated today')])
             fig.update_xaxes(range=[0, 100], title='mastery %'); L(fig, max(220, 40 * len(rows)), barmode='overlay')
         return
 
@@ -66,7 +75,7 @@ def skill_test_tab(have_names, add_skills, history=None):
         st.button('Choose another skill', on_click=_quit)
         return
 
-    heading(f'{t.skill} skill test', 'A correct answer counts less toward mastery when you mark it as a guess.')
+    heading(f'{skill_name(t.skill)} skill test', 'A correct answer counts less toward mastery when you mark it as a guess.')
     left, right = st.columns([3, 2], gap='medium')
     with left.container(key='question'):
         if feedback:
@@ -83,7 +92,7 @@ def skill_test_tab(have_names, add_skills, history=None):
             st.html(f'<div class="folio-question-meta">Question {n + 1} / {assess.MAX_Q} &nbsp; | &nbsp; '
                     f'{esc(t.sub_names[q["sub"]])} &nbsp; | &nbsp; {esc(assess.LEVELS[q["level"]])}</div>')
             st.html(f'<h2>{esc(q["text"])}</h2>')
-            st.toggle('I’m sure of my answer', value=True, key='sure')
+            st.toggle('I’m sure of my answer', key='sure')
             for k, option in enumerate(q['options']):
                 st.button(f'{"ABCD"[k]}.  {option}', key=f'opt{n}_{k}', width='stretch',
                           on_click=_answer, args=(option,))
@@ -108,7 +117,7 @@ def report_view(t, add_skills, history):
         assess.save_result(r, history=history)
         S.saved = True
     hist = (assess.load_history() if history is None else history).get(t.skill, [])
-    heading(f'{t.skill} test report', 'Mastery estimates how likely you are to solve a typical medium question without guessing.')
+    heading(f'{skill_name(t.skill)} test report', 'Mastery estimates how likely you are to solve a typical medium question without guessing.')
     c1, c2 = st.columns([1, 1])
     with c1: score_readout(r['mastery'], f'{r["level"]} mastery', before=hist[-2]['mastery'] if len(hist) > 1 else None, color=TEAL)
     with c2:
@@ -129,7 +138,7 @@ def report_view(t, add_skills, history):
         for a in r['wrong']: card(f'<b>{esc(a["text"])}</b><br><small>Your answer</small> {esc(a["chosen"])}<br><small>Correct answer</small> <span style="color:{TEAL}">{esc(a["correct"])}</span><br><small>{esc(a["why"])}</small>')
     c = st.columns(2)
     c[0].button('Retake test', on_click=_start, args=(t.skill,), width='stretch')
-    if r['mastery'] >= 40: c[1].button(f'Add {t.skill} to my profile', on_click=add_skills, args=([t.skill],), width='stretch')
+    if r['mastery'] >= 40: c[1].button(f'Add {skill_name(t.skill)} to my profile', on_click=add_skills, args=([t.skill],), width='stretch')
 
 # ================= CODING PROFILE =================
 @st.cache_data(ttl=900, show_spinner=False)

@@ -6,7 +6,6 @@ from pathlib import Path
 import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
-import streamlit.components.v1 as components
 
 from core import D, V, N
 
@@ -184,4 +183,4 @@ def galaxy3d(have, missing, add=(), h=700):
                 have=[int(i) for i in have], miss=[int(i) for i in missing if i not in add], add=[int(i) for i in add])
     page = _GALAXY.replace('__DATA__', json.dumps(data)).replace('__H__', str(h))
     for k, val in dict(FONTS=FONTS, GSAP=GSAP, INK='#132722', PAPER='#f9f8ef', AMBER='#efc979', CORAL='#f1a092', TEAL='#8cd8ba', MUTED='#c3d3c9', LINE='#456359').items(): page = page.replace(f'__{k}__', val)
-    components.html(page, height=h + 4)
+    st.iframe(page, height=h + 4, alt='Interactive 3D map of related job skills')
