@@ -1,6 +1,7 @@
 # Skillfolio career assessment workspace. Run: .venv/bin/streamlit run app.py
 import io, html, os, time
 import numpy as np, streamlit as st, plotly.graph_objects as go
+from pathlib import Path
 from streamlit.errors import StreamlitSecretNotFoundError
 from core import D, V, ROLES, N, IX, T, norm, probs, flags, extract, effort, evolve, path, audit
 import deep
@@ -8,7 +9,7 @@ from ui import NAME, css, masthead, heading, hero, role_rankings, score_readout,
 import assess
 from tabs_new import skill_test_tab, coding_tab, model_lab_extra
 
-st.set_page_config(page_title=NAME, layout="wide")
+st.set_page_config(page_title=NAME, page_icon=str(Path(__file__).with_name("skillfolio.png")), layout="wide")
 
 SAMPLE_RESUME = """Aarav Mehta — B.Tech Computer Science, 3rd year
 Projects

@@ -96,7 +96,7 @@ Random Forest got 80.0% but 99.9% on its own training data, so it memorises. Log
 
 # Skill test and coding profile
 
-**Run the new tests:** `.venv/bin/python tests/test_new.py` (18 checks; add `--online` to also check the live LeetCode, Codeforces and GitHub fetches)
+**Run the new tests:** `.venv/bin/python tests/test_new.py` (20 checks; add `--online` to also check the live LeetCode, Codeforces and GitHub fetches)
 
 ## Skill test (tab "Skill test")
 
