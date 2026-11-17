@@ -2,7 +2,6 @@
 import io, html, os, time
 import numpy as np, streamlit as st, plotly.graph_objects as go
 from pathlib import Path
-from streamlit.errors import StreamlitSecretNotFoundError
 from core import D, V, ROLES, N, IX, T, norm, probs, flags, extract, effort, evolve, path, audit
 import deep
 from ui import NAME, css, masthead, heading, hero, role_rankings, score_readout, chips, L, galaxy3d, PAL, INK, PAPER, AMBER, CORAL, TEAL, MUTED, LINE
@@ -109,13 +108,8 @@ if t1.open:
 
 skills = S.skills
 target_name = S.get('target_role', 'ML Engineer')
-public_demo = os.getenv('SKILLFOLIO_PUBLIC_DEMO') == '1'
-if not public_demo:
-    try:
-        public_demo = st.secrets.get('SKILLFOLIO_PUBLIC_DEMO', False) is True
-    except StreamlitSecretNotFoundError:
-        pass
-history = S.setdefault('assessment_history', {}) if public_demo else None
+# Shared deployments always use isolated history unless local persistence is explicitly enabled.
+history = None if os.getenv('SKILLFOLIO_LOCAL_HISTORY') == '1' else S.setdefault('assessment_history', {})
 have = [IX[s] for s in skills]
 target = ROLES.index(target_name)
 vec = flags(have)

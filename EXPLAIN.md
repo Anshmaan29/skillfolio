@@ -2,7 +2,7 @@
 
 **One line:** Skillfolio compares your skills with tech roles, tests selected skills, and simulates what you could learn next.
 
-**Run it:** `cd ~/CareerTwin && .venv/bin/streamlit run app.py`
+**Run it:** `cd ~/CareerTwin && SKILLFOLIO_LOCAL_HISTORY=1 .venv/bin/streamlit run app.py`
 **Run the tests:** `.venv/bin/python tests/test_careertwin.py` (29 checks, all pass)
 
 ## The data (real, not synthetic)
@@ -129,7 +129,7 @@ How it scores you, in plain words:
 
 Fitted values the app uses: guess 0.10, slip 0.00, discrimination 1.43, difficulty levels −1.01 / −0.28 / +0.53, BKT (prior 0.66, learn 0.46, guess 0.29, slip 0.28), forgetting half-life about 4 days.
 
-In simulation (`tests/test_new.py`), the estimated ability correlated 0.94 with simulated ability. Tests averaged 8.6 questions. The question-bank checks cover structure and answer uniqueness. Review the answer keys for the skills you plan to demo. Hosted demo retakes share history within a session. Local test history is stored on disk.
+In simulation (`tests/test_new.py`), the estimated ability correlated 0.94 with simulated ability. Tests averaged 8.6 questions. The question-bank checks cover structure and answer uniqueness. Review the answer keys for the skills you plan to demo. Hosted demo retakes share history within a session. The local run command above enables test history on disk.
 
 **Viva questions**
 - *Why IRT and not the LSTM?* IRT scored best (AUC 0.757 vs 0.729), it works on brand-new questions, and every number in it can be explained. The LSTM needs past answers to the same questions, which our new bank does not have.
