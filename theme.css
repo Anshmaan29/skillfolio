@@ -10,6 +10,7 @@
   --folio-accent-hover: #400a13;
   --folio-accent-soft: #eedde0;
   --folio-brass: #916b39;
+  --folio-brass-ink: #765126;
   --folio-gold-soft: #f2e3ce;
   --folio-red: #8c3028;
   --folio-red-soft: #f1dbd5;
@@ -251,7 +252,7 @@ html, body { overflow-x: clip; }
 }
 .st-key-profile [data-testid="stFileUploaderDropzone"] button { font-size: .82rem; }
 [data-testid="stMetricValue"] { font-size: 1.95rem; font-variant-numeric: tabular-nums; }
-[data-testid="stMetricLabel"] p { color: var(--folio-muted); font-size: .88rem; }
+[data-testid="stCaptionContainer"], [data-testid="stMetricLabel"] p { color: var(--folio-muted); font-size: .88rem; }
 [data-testid="stExpander"] summary { cursor: pointer; }
 
 .card { border-top: 1px solid var(--folio-line); padding: .8rem 0; line-height: 1.55; }
@@ -270,7 +271,7 @@ html, body { overflow-x: clip; }
 }
 .chip.have, mark.on { background: var(--folio-accent-soft); color: var(--folio-accent); }
 .chip.miss { background: var(--folio-red-soft); color: var(--folio-red); }
-.chip.new, mark.new { background: var(--folio-gold-soft); color: var(--folio-brass); }
+.chip.new, mark.new { background: var(--folio-gold-soft); color: var(--folio-brass-ink); }
 .step { display: flex; gap: .85rem; align-items: baseline; padding: .65rem 0; border-bottom: 1px solid var(--folio-line); }
 .step i { font-style: normal; color: var(--folio-muted); min-width: 1.75rem; }
 .step span { margin-left: auto; color: var(--folio-accent); font-weight: 700; }
