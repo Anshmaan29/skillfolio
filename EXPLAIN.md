@@ -3,7 +3,7 @@
 **One line:** Skillfolio compares your skills with tech roles, tests selected skills, and simulates what you could learn next.
 
 **Run it:** `cd ~/CareerTwin && SKILLFOLIO_LOCAL_HISTORY=1 .venv/bin/streamlit run app.py`
-**Run the tests:** `.venv/bin/python tests/test_careertwin.py` (29 checks, all pass)
+**Run the tests:** `.venv/bin/python tests/test_careertwin.py` (30 checks, all pass)
 
 ## The data (real, not synthetic)
 

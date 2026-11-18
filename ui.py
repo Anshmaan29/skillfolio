@@ -1,6 +1,8 @@
 """Skillfolio theme, report components and charts."""
+import base64
 import html
 import json
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -11,11 +13,12 @@ from core import D, V, N
 
 NAME = "Skillfolio"
 INK, PAPER, AMBER, CORAL, TEAL, MUTED, LINE = (
-    "#f6f5ef", "#1d2d28", "#285649", "#934537", "#39765f", "#53645b", "#d9dfd5"
+    "#f5eee4", "#1e1a17", "#5b0f1b", "#a54032", "#806039", "#685348", "#d0bfa8"
 )
-FONTS = "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Hedvig+Letters+Serif:opsz@12..24&display=swap"
+FONTS = "https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..600&family=DM+Sans:wght@400;500;600;700&display=swap"
 GSAP = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"
-MARK = '<span class="folio-mark" aria-hidden="true"><i></i><i></i><i></i></span>'
+MARK = '<span class="folio-mark" aria-hidden="true">S</span>'
+WINE_WASH = 'rgba(91,15,27,.12)'
 
 
 def css():
@@ -24,7 +27,7 @@ def css():
 
 
 def masthead():
-    st.html(f'<header class="folio-brand"><span class="folio-wordmark">{MARK}{NAME}</span>'
+    st.html(f'<header class="folio-brand">{MARK}<span class="folio-wordmark">{NAME}</span>'
             '<small>Career assessment workspace</small></header>')
 
 
@@ -42,17 +45,26 @@ def score_bar(pct):
     return f'<span class="folio-track" aria-hidden="true"><span class="folio-fill" style="width:{pct:.2f}%"></span></span>'
 
 
+@lru_cache(maxsize=1)
+def frontispiece():
+    asset = Path(__file__).with_name('skillfolio-folio.webp')
+    return base64.b64encode(asset.read_bytes()).decode('ascii')
+
+
 def hero(slot, role, score, best_role):
+    book_score = ''
     snapshot = '<span>Add at least three skills to see your role fit.</span>'
     if score is not None:
-        snapshot = (f'<span>Target role</span><div class="folio-score"><strong>{html.escape(role)}</strong>'
-                    f'<b>{html.escape(score_text(score))}</b></div>{score_bar(score)}'
+        value = html.escape(score_text(score))
+        book_score = f'<data class="folio-book-score" value="{score:.2f}" aria-label="Target role score {value}">{value}</data>'
+        snapshot = (f'<span>Target role</span><div class="folio-score"><strong>{html.escape(role)}</strong></div>{score_bar(score)}'
                     f'<small>Closest match: {html.escape(best_role)}</small>')
     slot.html('<section class="folio-hero" aria-labelledby="role-fit-title"><div>'
               '<h1 id="role-fit-title">Where do your skills fit?</h1>'
               '<p>Compare your profile with tech roles and see which skills could improve your fit.</p>'
               f'<p class="folio-source">Based on <strong>{D["n_postings"]:,} job postings</strong> and <strong>{N} mapped skills</strong></p>'
-              f'</div><div class="folio-snapshot">{snapshot}</div></section>')
+              f'</div><figure class="folio-plate"><div class="folio-book"><img src="data:image/webp;base64,{frontispiece()}" alt="" width="500" height="714">'
+              f'{book_score}</div><figcaption class="folio-snapshot">{snapshot}</figcaption></figure></section>')
 
 
 def role_rankings(roles, probabilities, target):
@@ -83,7 +95,7 @@ def L(fig, h=380, **kw):
 
 
 def score_readout(pct, label, before=None, color=AMBER):
-    previous = f'<small>Previous score {before:.0f}%</small>' if before is not None else ''
+    previous = f'<small>Previous score {html.escape(score_text(before))}</small>' if before is not None else ''
     st.html(f'<div class="folio-measure" style="--score-accent:{color}"><b>{html.escape(score_text(pct))}</b>'
             f'<p>{html.escape(label)}</p>{score_bar(pct)}{previous}</div>')
 
@@ -96,11 +108,11 @@ def chips(idx, cls=''):
 PAL = ['#5b8def', '#57c7c0', '#a78bfa', '#6fcf97', '#e0b25c', '#e58a8a', '#6cb6d9', '#9aa0d6', '#4fb8a8', '#d1a86a', '#7fa6e6', '#b08fd8', '#74c9a0', '#d98fa6']
 _GALAXY = r"""<link href="__FONTS__" rel="stylesheet">
 <style>body{margin:0;background:transparent;overflow:hidden;font-family:'DM Sans',sans-serif}
-#w{position:relative;height:__H__px;border:1px solid __LINE__;border-radius:8px;overflow:hidden;background:radial-gradient(ellipse at 50% 42%,#141c33 0%,__INK__ 72%);cursor:grab}
+#w{position:relative;height:__H__px;border:1px solid __LINE__;border-radius:2px;overflow:hidden;background:radial-gradient(ellipse at 50% 42%,#3a2123 0%,__INK__ 72%);cursor:grab}
 #w:active{cursor:grabbing} canvas{display:block}
 .lb{position:absolute;left:0;top:0;font-size:11px;pointer-events:none;white-space:nowrap;will-change:transform;text-shadow:0 0 6px __INK__,0 0 3px __INK__,0 0 2px __INK__}
 .fam{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:__MUTED__;opacity:.5}
-#tip{position:absolute;left:0;top:0;padding:6px 10px;background:#0f1524ee;border:1px solid __LINE__;border-radius:4px;font-size:11px;color:__PAPER__;pointer-events:none;opacity:0;transition:opacity .15s;z-index:5}
+#tip{position:absolute;left:0;top:0;padding:6px 10px;background:#1e1a17ee;border:1px solid __LINE__;border-radius:4px;font-size:11px;color:__PAPER__;pointer-events:none;opacity:0;transition:opacity .15s;z-index:5}
 #tip small{color:__MUTED__;display:block;font-size:9.5px}
 #lg{position:absolute;left:16px;bottom:14px;font-size:10.5px;color:__MUTED__;line-height:1.9} #lg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px}
 #hint{position:absolute;right:16px;bottom:14px;font-size:10px;color:__MUTED__;letter-spacing:.08em;text-transform:uppercase;opacity:.7}
@@ -182,5 +194,5 @@ def galaxy3d(have, missing, add=(), h=700):
                 s=np.round(7 + 5.5 * np.log1p(D['freq'] / D['freq'].min()), 1).tolist(), n=V, f=D['clusters'].tolist(), fn=D['cluster_names'],
                 have=[int(i) for i in have], miss=[int(i) for i in missing if i not in add], add=[int(i) for i in add])
     page = _GALAXY.replace('__DATA__', json.dumps(data)).replace('__H__', str(h))
-    for k, val in dict(FONTS=FONTS, GSAP=GSAP, INK='#132722', PAPER='#f9f8ef', AMBER='#efc979', CORAL='#f1a092', TEAL='#8cd8ba', MUTED='#c3d3c9', LINE='#456359').items(): page = page.replace(f'__{k}__', val)
+    for k, val in dict(FONTS=FONTS, GSAP=GSAP, INK='#201617', PAPER='#f5eee4', AMBER='#dfb572', CORAL='#ed9c84', TEAL='#e2cbb1', MUTED='#dfcbb8', LINE='#795553').items(): page = page.replace(f'__{k}__', val)
     st.iframe(page, height=h + 4, alt='Interactive 3D map of related job skills')

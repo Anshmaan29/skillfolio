@@ -4,7 +4,7 @@ import numpy as np, streamlit as st, plotly.graph_objects as go
 from pathlib import Path
 from core import D, V, ROLES, N, IX, T, norm, probs, flags, extract, effort, evolve, path, audit
 import deep
-from ui import NAME, css, masthead, heading, hero, role_rankings, score_readout, chips, L, galaxy3d, PAL, INK, PAPER, AMBER, CORAL, TEAL, MUTED, LINE
+from ui import NAME, css, masthead, heading, hero, role_rankings, score_text, score_readout, chips, L, galaxy3d, PAL, INK, PAPER, AMBER, CORAL, TEAL, MUTED, LINE, WINE_WASH
 import assess
 from tabs_new import skill_test_tab, coding_tab, model_lab_extra
 
@@ -114,12 +114,15 @@ have = [IX[s] for s in skills]
 target = ROLES.index(target_name)
 vec = flags(have)
 tested = {}
+test_signals = []
 if S.get('weight_tests', True):
     for skill in skills:
         mastery = assess.mastery_today(skill, history=history)
         if mastery:
             vec[IX[skill]] = mastery['today'] / 100
             tested[skill] = mastery['today']
+            test_signals.append((skill, mastery['tested'], mastery['tests']))
+profile_key = (tuple(have), target, tuple(test_signals))
 p_now = probs(vec[None])[0]
 w = D['coef'][target]
 prof = D['role_profile'][target]
@@ -170,7 +173,7 @@ if tx.open:
             if x and x['text'] == text:
                 on, new = found_skills(x['ents'])
                 st.markdown(highlight(text, x['ents']), unsafe_allow_html=True)
-                st.markdown(f'<small style="color:{MUTED}"><span style="color:{TEAL}">■</span> {len(on)} skills on the map &nbsp; <span style="color:{AMBER}">■</span> {len(new)} skills the model found that are outside our 500 &nbsp;·&nbsp; all model passes took {x["ms"]:.0f} ms on this laptop</small>', unsafe_allow_html=True)
+                st.markdown(f'<small style="color:{MUTED}"><span style="color:{TEAL}">■</span> {len(on)} skills on the map &nbsp; <span style="color:{AMBER}">■</span> {len(new)} skills the model found that are outside our 500 &nbsp;·&nbsp; analysis took {x["ms"]:.0f} ms</small>', unsafe_allow_html=True)
                 ex = extras(text, on)
                 if ex: st.markdown(f'<small style="color:{MUTED}">a plain word search also matched these (not added automatically, add them in the profile box if they are real skills of yours):</small> {chips(ex)}', unsafe_allow_html=True)
                 if len(on) >= 3: st.button(f'Use these {len(on)} skills as my profile', on_click=use, args=(on,))
@@ -235,10 +238,10 @@ if t2 and t2.open:
             st.info('Add at least three skills in Role fit to use this tool.')
         else:
             note('Every dot is a skill. Skills that appear together in job postings sit close together (co-occurrence → SVD embedding → t-SNE). Colours are K-means clusters. Highlighted skills show what you have and what your target role could use next.')
-            add = S.ga[1] if S.get('ga') and S.ga[0][:2] == (tuple(have), target) else []
+            add = S.ga[1] if S.get('ga') and S.ga[0][:3] == profile_key else []
             if st.radio('Map view', ['3D galaxy', 'Flat map'], horizontal=True, key='map_view') == '3D galaxy':
                 galaxy3d(have, missing, add)
-                if add: st.caption('Teal stars are the skills the genetic algorithm picked for you in Learning path.')
+                if add: st.caption('Stars marked with a plus sign came from Learning path.')
             else:
                 xy = D['xy']
                 fig = go.Figure(go.Scattergl(x=xy[:, 0], y=xy[:, 1], mode='markers', text=HOVER, hoverinfo='text', marker=DOT, name='all skills'))
@@ -255,22 +258,36 @@ if t3 and t3.open:
         heading('Learning path', 'Simulate which new skills could raise your fit for the role you chose.')
         if len(have) < 3:
             st.info('Add at least three skills in Role fit to use this tool.')
+        elif len(have) == N:
+            st.info('Your profile already includes every skill in the library.')
         else:
-            note('A genetic algorithm breeds small sets of new skills. Each set is scored by how much it lifts your match, minus how hard it is to learn (far from what you know = harder). The best sets survive, mix and mutate for 40 generations.')
-            c1, c2, c3 = st.columns([1, 1, 1])
-            k = c1.slider('New skills to learn', 1, 6, 3)
-            lam = c2.slider('Prefer easy-to-learn skills', 0.0, 0.6, 0.2, 0.05)
-            c3.write(''); key = (tuple(have), target, k, lam)
-            if c3.button('Simulate learning path', type='primary', width='stretch'): S.ga = (key, *evolve(have, target, k, lam))
+            note('The search balances fit for your target role with how close each new skill is to what you already know.')
+            c1, c2, c3 = st.columns([1, 1, 1], vertical_alignment='bottom')
+            limit = min(6, N - len(have))
+            S.new_skills = min(S.new_skills, limit)
+            if limit == 1:
+                c1.caption('One skill is available to add.')
+                k = 1
+            else:
+                k = c1.slider('New skills to learn', 1, limit, key='new_skills')
+            lam = c2.slider('Preference for easier skills', 0.0, 0.6, step=0.05, key='learning_effort')
+            key = (*profile_key, k, lam)
+            if c3.button('Simulate learning path', type='primary', width='stretch'):
+                S.ga = (key, *evolve(have, target, k, lam, profile=vec), vec)
             if S.get('ga', [None])[0] == key:
-                _, bestset, hist, bests = S.ga
-                order = path(have, bestset); steps, known = [], list(have)
+                _, bestset, hist, bests, baseline = S.ga
+                order = path(have, bestset)
+                steps = []
+                simulated = baseline.copy()
                 for i in order:
-                    known.append(i); steps.append(probs(flags(known)[None])[0, target] * 100)
+                    simulated[i] = 1
+                    steps.append(probs(simulated[None])[0, target] * 100)
                 c1, c2 = st.columns([2, 3])
-                with c1: score_readout(steps[-1], f'{target_name} after {k} skills', before=p_now[target] * 100, color=TEAL)
+                with c1:
+                    score_readout(steps[-1], f'{target_name} after {k} skills',
+                                  before=probs(baseline[None])[0, target] * 100, color=TEAL)
                 with c2:
-                    fig = go.Figure(go.Scatter(y=hist, mode='lines', line=dict(color=AMBER, width=2), fill='tozeroy', fillcolor='rgba(40,86,73,.12)'))
+                    fig = go.Figure(go.Scatter(y=hist, mode='lines', line=dict(color=AMBER, width=2), fill='tozeroy', fillcolor=WINE_WASH))
                     fig.update_xaxes(title='generation'); fig.update_yaxes(title='best fitness')
                     L(fig, 250, title='Evolution: best fitness in each generation')
                 st.markdown('### Your learning path')
@@ -279,7 +296,7 @@ if t3 and t3.open:
                     near = V[have[int(np.argmax(D['emb'][have] @ D['emb'][i]))]]
                     st.markdown(f'<div class="step" ><i>{n:02d}</i><div><b>{V[i]}</b><br><small style="color:{MUTED}">closest to your <b>{near}</b> · effort {eff[i]:.2f}</small></div><span>→ {s:.0f}%</span></div>', unsafe_allow_html=True)
                 st.markdown('### Replay the search')
-                note('Press play. The teal markers are the best skill set of each generation, jumping around the galaxy until evolution settles.')
+                note('Press play. The diamond markers show the best skill set in each generation.')
                 xy = D['xy']; tr = lambda g: go.Scatter(x=xy[bests[g], 0], y=xy[bests[g], 1], mode='markers+text', text=[V[i] for i in bests[g]], textposition='top center',
                                                          textfont=dict(color=TEAL, size=12), marker=dict(size=18, color=TEAL, symbol='diamond', line=dict(color=INK, width=1)), name='best set')
                 fig = go.Figure([go.Scatter(x=xy[:, 0], y=xy[:, 1], mode='markers', marker=dict(DOT, opacity=.45), hoverinfo='skip', name='all skills'),
@@ -291,7 +308,7 @@ if t3 and t3.open:
                                   sliders=[dict(currentvalue=dict(prefix='generation '), pad=dict(t=10), steps=[dict(method='animate', label=str(g + 1), args=[[str(g + 1)], dict(mode='immediate', frame=dict(duration=0, redraw=False))]) for g in range(len(bests))])])
                 L(fig, 560)
             else:
-                st.markdown(f'<div class="card"><small>Press the button. Current match for {target_name}: {p_now[target]*100:.0f}%</small></div>', unsafe_allow_html=True)
+                st.caption(f'Current fit for {target_name}: {score_text(p_now[target] * 100)}')
 
 
 # ---------------- 4. JD match ----------------
@@ -326,11 +343,22 @@ if t4 and t4.open:
         heading('Similar jobs', 'Browse real postings with skill lists close to your own.')
         note('K-nearest neighbours with cosine similarity: the real postings whose skill lists look most like yours.')
         only = st.toggle(f'Only {target_name} postings', False, key='filter_jobs')
-        u = flags(have); sim = T @ u / (np.linalg.norm(T, axis=1) * np.linalg.norm(u) + 1e-9); tw = D['twins']
-        if only: sim = sim * np.array([r == target_name for r in tw['role']])
-        for r in np.argsort(-sim)[:6]:
-            need = [i for i in tw['ix'][r] if i not in have][:8]; got = [i for i in tw['ix'][r] if i in have]
-            st.markdown(f'<div class="card"><b>{html.escape(tw["title"][r])}</b> <small>· {html.escape(tw["company"][r])} · {tw["role"][r]} · similarity {sim[r]:.2f}</small><br>{chips(got, "have")}{chips(need, "miss")}</div>', unsafe_allow_html=True)
+        if not have:
+            st.info('Add skills in Role fit to find comparable postings.')
+        else:
+            u = flags(have)
+            tw = D['twins']
+            sim = T @ u / (np.linalg.norm(T, axis=1) * np.linalg.norm(u) + 1e-9)
+            ranked = np.argsort(-sim)
+            if only:
+                ranked = ranked[np.asarray(tw['role'])[ranked] == target_name]
+            if not len(ranked):
+                st.info('There are no matching postings for this role in the dataset.')
+            for r in ranked[:6]:
+                need = [i for i in tw['ix'][r] if i not in have][:8]
+                got = [i for i in tw['ix'][r] if i in have]
+                st.html(f'<div class="card"><b>{html.escape(tw["title"][r])}</b> <small>· {html.escape(tw["company"][r])} · {tw["role"][r]} · similarity {sim[r]:.2f}</small><br>{chips(got, "have")}{chips(need, "miss")}</div>')
+
 
 
 # ---------------- 6. model lab ----------------
@@ -348,7 +376,7 @@ if t5.open:
         if deep.READY:
             R_ = deep.META['role']
             if c2.button('Re-test the text model on 60 unseen job descriptions', width='stretch'):
-                with st.spinner('running DistilBERT on this laptop…'):
+                with st.spinner('Running DistilBERT…'):
                     t0 = time.time(); pr = deep.role_probs(R_['audit']['text'][:60]); S.aud2 = (float((pr.argmax(1) == np.array(R_['audit']['y'][:60])).mean()), (time.time() - t0) / 60 * 1000)
             if 'aud2' in S:
                 m = c2.columns(2); m[0].metric('accuracy on 60 unseen', f'{S.aud2[0]*100:.0f}%'); m[1].metric('time per document', f'{S.aud2[1]:.0f} ms')

@@ -2,7 +2,7 @@
 import html, time
 import numpy as np, streamlit as st, plotly.graph_objects as go
 import assess, coding
-from ui import heading, score_readout, L, PAPER, AMBER, CORAL, TEAL, MUTED, LINE
+from ui import heading, score_readout, L, PAPER, AMBER, CORAL, TEAL, MUTED, LINE, WINE_WASH
 
 note = lambda s: st.html(f'<div class="note">{s}</div>')
 card = lambda s: st.html(f'<div class="card">{s}</div>')
@@ -22,16 +22,21 @@ def _start(skill):
     st.session_state.feedback = None
     st.session_state.saved = False
     st.session_state.sure = True
-def _answer(opt):
-    S = st.session_state; q = S.test.current
-    ok = S.test.answer(opt, S.get('sure', True)); S.feedback = dict(ok=ok, chosen=opt, correct=q['correct'], why=q['why'])
+def _answer(question_id, opt):
+    S = st.session_state
+    test = S.get('test')
+    q = test.current if test else None
+    if not q or q['id'] != question_id or S.get('feedback'):
+        return
+    ok = test.answer(opt, S.get('sure', True))
+    S.feedback = dict(ok=ok, chosen=opt, correct=q['correct'], why=q['why'])
 def _next(): st.session_state.feedback = None
 def _quit(): st.session_state.test = None; st.session_state.feedback = None
 
 def belief_chart(t):
     prior, now = np.array(t.curves[0]), np.array(t.curves[-1]); m, sd = t.estimate()
     fig = go.Figure([go.Scatter(x=assess.TH, y=prior, line=dict(color=MUTED, dash='dot'), name='before the test'),
-                     go.Scatter(x=assess.TH, y=now, fill='tozeroy', fillcolor='rgba(40,86,73,.14)', line=dict(color=AMBER, width=2), name='current estimate')])
+                     go.Scatter(x=assess.TH, y=now, fill='tozeroy', fillcolor=WINE_WASH, line=dict(color=AMBER, width=2), name='current estimate')])
     for k, lab in enumerate(['easy', 'medium', 'hard']):
         fig.add_vline(x=assess.B[k], line=dict(color=LINE, dash='dash'), annotation_text=lab, annotation_font_color=MUTED)
     fig.update_xaxes(title='Ability (θ)', range=[-3.5, 3.5]); fig.update_yaxes(visible=False)
@@ -95,7 +100,7 @@ def skill_test_tab(have_names, add_skills, history=None):
             st.toggle('I’m sure of my answer', key='sure')
             for k, option in enumerate(q['options']):
                 st.button(f'{"ABCD"[k]}.  {option}', key=f'opt{n}_{k}', width='stretch',
-                          on_click=_answer, args=(option,))
+                          on_click=_answer, args=(q["id"], option))
         st.button('Quit test', on_click=_quit)
 
     with right:
@@ -157,17 +162,25 @@ def coding_tab(V, add_skills):
         analyse, examples = st.columns([1, 3])
         go_clicked = analyse.button('Analyze profiles', type='primary')
         examples.button('Use public examples', on_click=lambda: S.update(lc_user='lee215', cf_user='tourist', gh_user='torvalds'))
-    if go_clicked and not any(user.strip() for user in (lc_u, cf_u, gh_u)):
+    handles = tuple(value.strip() for value in (lc_u, cf_u, gh_u))
+    if go_clicked and not any(handles):
         st.warning('Enter at least one public username to continue.')
-    if go_clicked and any(user.strip() for user in (lc_u, cf_u, gh_u)):
+    elif go_clicked:
         res, err = {}, {}
         with st.spinner('Fetching public profiles…'):
-            for kind, u in (('leetcode', lc_u), ('codeforces', cf_u), ('github', gh_u)):
-                if not u.strip(): continue
-                try: res[kind] = _fetch(kind, u.strip())
-                except Exception as e: err[kind] = str(e)[:160]
-        S.code = dict(res=res, err=err)
-    if 'code' not in S: return
+            for kind, handle in zip(('leetcode', 'codeforces', 'github'), handles):
+                if not handle:
+                    continue
+                try:
+                    res[kind] = _fetch(kind, handle)
+                except Exception as e:
+                    err[kind] = str(e)[:160]
+        S.code = dict(handles=handles, res=res, err=err)
+    if 'code' not in S:
+        return
+    if S.code.get('handles') != handles:
+        st.caption('Usernames changed. Select Analyze profiles to load the new results.')
+        return
     res, err = S.code['res'], S.code['err']
     platforms = {'leetcode': 'LeetCode', 'codeforces': 'Codeforces', 'github': 'GitHub'}
     for k, e in err.items():
@@ -259,7 +272,7 @@ def model_lab_extra():
         c1, c2 = st.columns(2)
         with c1:
             bs = R['by_step']; fig = go.Figure()
-            for k, col in zip([m['model'] for m in R['results']], [MUTED, '#8a93a8', AMBER, TEAL, '#a78bfa', CORAL]):
+            for k, col in zip([m['model'] for m in R['results']], [MUTED, '#77745a', AMBER, TEAL, '#765373', CORAL]):
                 fig.add_scatter(x=[b['window'] for b in bs], y=[b[k] for b in bs], name=k, line_color=col)
             fig.update_xaxes(title="student's answers seen so far"); fig.update_yaxes(title='AUC'); L(fig, 360, title='AUC by number of prior answers')
         with c2:

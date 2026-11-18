@@ -45,6 +45,16 @@ check('GA result changes when the target role changes', set(evolve(have, ROLES.i
 check('GA runs fast enough for a live demo', dt < 5, f'{dt:.2f}s')
 check('learning path keeps the same skills, just reordered', sorted(path(have, best_set)) == sorted(best_set))
 
+weighted = flags(have)
+weighted[IX['python']] = .35
+weighted_before = weighted.copy()
+_, weighted_fitness, weighted_history = evolve(have, t, 3, 0.0, profile=weighted)
+weighted_example = weighted.copy()
+weighted_example[weighted_history[0]] = 1
+check('GA scores candidate skills using current assessment weights',
+      np.isclose(weighted_fitness[0], probs(weighted_example[None])[0, t])
+      and np.array_equal(weighted, weighted_before))
+
 # ---- 4. skill embeddings learned real relationships ----
 near = lambda s: [V[i] for i in np.argsort(-(D['emb'] @ D['emb'][IX[s]]))[1:8]]
 for s, friends in [('pytorch', {'tensorflow', 'deep learning', 'keras'}), ('html', {'css', 'javascript'}), ('docker', {'kubernetes'})]:

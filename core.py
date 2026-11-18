@@ -34,11 +34,12 @@ def effort(have):
     """Learning effort of every skill = distance from the nearest skill you already know (embedding cosine)."""
     return 1 - (D['emb'] @ D['emb'][list(have)].T).max(1)
 
-def evolve(have, target, k, lam, gens=40, pop=60, seed=7):
+def evolve(have, target, k, lam, gens=40, pop=60, seed=7, *, profile=None):
     """Genetic algorithm. A chromosome = k new skills. Fitness = role probability - lam * learning effort.
     Returns (best set, best fitness per generation, best set per generation)."""
     rng = np.random.default_rng(seed)
-    cand = np.array([i for i in range(N) if i not in have]); cost = effort(have); base = flags(have)
+    cand = np.array([i for i in range(N) if i not in have]); cost = effort(have)
+    base = flags(have) if profile is None else profile
     def fitness(P):
         M = np.repeat(base[None], len(P), 0); np.put_along_axis(M, P, 1, 1)
         return probs(M)[:, target] - lam * cost[P].mean(1)
