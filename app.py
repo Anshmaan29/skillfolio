@@ -62,7 +62,7 @@ S.setdefault('new_skills', 3)
 S.setdefault('learning_effort', .2)
 
 # Keep inputs when their inactive tabs are not rendered.
-for key in ('skills', 'target_role', 'weight_tests', 'resume', 'jd', 'explore', 'test_skill',
+for key in ('resume', 'jd', 'explore', 'test_skill',
             'sure', 'lc_user', 'cf_user', 'gh_user', 'map_view', 'new_skills', 'learning_effort', 'filter_jobs'):
     if key in S:
         S[key] = S[key]
@@ -70,6 +70,12 @@ for key in ('skills', 'target_role', 'weight_tests', 'resume', 'jd', 'explore', 
 
 def preset(name):
     S.skills = [s for s in PRESETS[name] if s in IX]
+
+
+def apply_profile():
+    S.target_role = S.profile_role
+    S.skills = S.profile_skills
+    S.weight_tests = S.profile_weight_tests
 
 
 def use(idx):
@@ -98,10 +104,15 @@ if t1.open:
         profile, rankings = st.columns([4, 6], gap='medium')
         with profile.container(key='profile'):
             st.markdown('## Your profile')
-            st.selectbox('Target role', ROLES, key='target_role')
-            st.multiselect('Current skills', V, key='skills', placeholder='Search the skill library')
-            st.toggle('Use skill test scores', key='weight_tests',
-                      help='A tested skill contributes its estimated mastery. A skill at 40% mastery counts as 0.4. Untested skills count fully.')
+            S.profile_role = S.target_role
+            S.profile_skills = S.skills
+            S.profile_weight_tests = S.weight_tests
+            with st.form('role_fit_profile', border=False):
+                st.selectbox('Target role', ROLES, key='profile_role')
+                st.multiselect('Current skills', V, key='profile_skills', placeholder='Search the skill library')
+                st.toggle('Use skill test scores', key='profile_weight_tests',
+                          help='A tested skill contributes its estimated mastery. A skill at 40% mastery counts as 0.4. Untested skills count fully.')
+                st.form_submit_button('Update role fit', on_click=apply_profile, type='primary', width='stretch')
             st.caption('Load a sample profile')
             for col, name in zip(st.columns(3), PRESETS):
                 col.button(name, on_click=preset, args=(name,), width='stretch')
